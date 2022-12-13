@@ -23,7 +23,6 @@ export function createDefaultState(): State {
     turn: {
       player: undefined,
       revealedTileIds: [],
-      prevRevealedTileId: undefined,
     },
     players: [player],
     scores: {
@@ -64,49 +63,7 @@ export default function gameReducer(state: State | undefined = createDefaultStat
         },
       };
     }
-    // case 'REVEAL_TILE_OLD': {
-    //   const {tileId} = action.payload;
-    //   const {turn, tiles, players, gameState} = state;
-    //   const tile = tiles[tileId];
-    //   const prevRevealedTile = turn.prevRevealedTileId ? tiles[turn.prevRevealedTileId] : undefined;
-      
-    //   // handle updating tile
-    //   const isMatch = tilesMatch(tile, prevRevealedTile);
-    //   const updatedTile: Tile = {
-    //     ...tile,
-    //     state: isMatch ? 'matched' : 'revealed',
-    //   };
-    //   const updatedTiles = {
-    //     ...state.tiles,
-    //     [updatedTile.id]: updatedTile,
-    //   };
-      
-    //   // // handle turn change
-    //   // let nextTurn = turn;
-    //   // let nextPlayerId = turn.player;
-    //   // const isTurnChange = !isMatch && prevRevealedTile != null && tile != null;
-    //   // if (isTurnChange) {
-    //   //   const nextPlayer = getNextArrayItem(players.findIndex(player => player.id === turn.player), players);
-    //   //   nextTurn = {
-    //   //     ...turn,
-    //   //     player: nextPlayerId,
-    //   //   };
-    //   //   nextPlayerId = nextPlayer.id;
-    //   // }
-      
-    //   // // handle end game
-    //   // let nextGameState = gameState;
-    //   // if (isMatch && isGameComplete(updatedTiles)) {
-    //   //   nextGameState = 'ended';
-    //   // }
 
-    //   return {
-    //     ...state,
-    //     // gameState: nextGameState,
-    //     // turn: nextTurn,
-    //     tiles: updatedTiles,
-    //   };
-    // }
     case 'REVEAL_TILE': {
       const {tileId} = action.payload;
       const {turn, tiles} = state;
@@ -192,6 +149,17 @@ export default function gameReducer(state: State | undefined = createDefaultStat
       };
     }
 
+    case 'GAME_COMPLETE': {
+      return {
+        ...state,
+        gameState: 'ended',
+        turn: {
+          player: undefined,
+          revealedTileIds: [],
+        },
+      };
+    }
+
     default:
       return state;
   }
@@ -203,7 +171,7 @@ function tilesMatch(tileA: Tile, tileB?: Tile) {
 }
 
 // handles rolling over
-function getNextArrayItem(index: number, arr: any[]) {
+function getNextArrayItem<T = unknown>(index: number, arr: T[]) {
   return index + 1 >= arr.length ? 
     arr[0] : 
     arr[index + 1];
@@ -213,7 +181,8 @@ function validateGameBeforeStart(state: State) {
   return state.players.length > 0 && state.gameState === 'setup';
 }
 
-function isGameComplete(tiles: State['tiles']) {
+function isGameComplete(state: State) {
+  const {tiles} = state;
   return Object.keys(tiles).every(tileId => tiles[tileId].state === 'matched');
 }
 
@@ -269,12 +238,9 @@ function shuffle(array: any[]) {
   return array;
 }
 
-function isTurnChange(state: State, tileId: string) {
-  const {turn, tiles} = state;
-  const tile = tiles[tileId];
-  const prevRevealedTile = turn.prevRevealedTileId ? tiles[turn.prevRevealedTileId] : undefined;
-  const isMatch = tilesMatch(tile, prevRevealedTile);
-  return !isMatch && prevRevealedTile != null && tile != null;
+export function getPlayer(state: State, playerId: string) {
+  const {players} = state;
+  return players.find(player => player.id === playerId);
 }
 
 function isSecondReveal(state: State) {
@@ -288,32 +254,47 @@ function getRevealedTiles(state: State) {
 }
 
 function revealedTilesMatch(state: State) {
-  const {turn, tiles} = state;
   const [tileA, tileB] = getRevealedTiles(state);
   return tilesMatch(tileA, tileB);
 }
 
-export function revealTileAction(tileId: string) {
+function canRevealTile(state: State) {
+  const {turn} = state;
+  return turn.revealedTileIds.length < 2;
+}
+
+export function revealTileAction(tileId: string, abortController?: AbortController) {
   const revealTile: ThunkAction<void, State, void, Actions> = async (dispatch, getState) => {
+    if (!canRevealTile(getState())) {
+      abortController?.abort();
+      return;
+    }
+
     const isLastAction = isSecondReveal(getState());
     dispatch({ type: 'REVEAL_TILE', payload: {tileId} });
     
     if (isLastAction) {
-      await wait(2000);
+      await wait(2000, abortController?.signal);
       dispatch({ type: 'TURN_OVER', payload: {} });
     }
-    
+
+    if (isGameComplete(getState())) {
+      dispatch({ type: 'GAME_COMPLETE', payload: {} });
+    }
   };
   return revealTile;
 }
 
-function wait(ms: number, abortSignal?: AbortSignal) {
-  return new Promise((resolve, reject) => {
-    if (abortSignal?.aborted) return reject();
+// aborting resolves it early
+function wait(ms: number, abortSignal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (abortSignal?.aborted) return resolve();
+
     const id = setTimeout(resolve, ms);
+    
     abortSignal?.addEventListener('abort', () => {
       clearTimeout(id);
-      reject();
+      resolve();
     }, {once: true});
   });
 }

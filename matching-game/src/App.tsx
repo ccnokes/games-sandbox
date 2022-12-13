@@ -8,6 +8,7 @@ import {
   useDispatch, 
   Tile,
   revealTileAction,
+  Player,
 } from './logic';
 
 // this is an app global
@@ -29,6 +30,8 @@ function App() {
 function SetupGame() {
   const players = useSelector<State['players']>(state => state.players);
   const startGame = useDispatch({ type: 'START', payload: {} });
+  // const addPlayer = useCallback((player: Player) => useDispatch({ type: 'ADD_PLAYER', payload: {player} }), []);
+  
   return (
     <div>
       <h1>Setup Game</h1>
@@ -36,12 +39,15 @@ function SetupGame() {
         {players.map(player => (<li key={player.id}>{player.name}</li>))}
       </ul>
       <button onClick={startGame}>Start</button>
+      
+      {/* <button onClick={() => addPlayer()}>Add Computer Player</button> */}
     </div>
   );
 }
 
 function Game() {
   const tiles = useSelector<State['tileOrder']>(state => state.tileOrder);
+
   return (
     <div>
       <h1>Game</h1>
@@ -54,15 +60,11 @@ function Game() {
 
 function GameTile({tileId}: {tileId: string}) {
   const tile = useSelector<Tile>(state => state.tiles[tileId]);
-  
-  // const revealTile = useDispatch({ type: 'REVEAL_TILE', payload: {tileId} }, [tileId]);
-  
-  // const doRevealTile = useCallback(() => {
-  //   revealTile();
-  //   // if 2nd action
-  // }, [revealTile]);
   const dispatch = reduxUseDispatch();
-  const doRevealTileAction = useCallback(() => dispatch(revealTileAction(tileId) as any), [tileId]);
+  
+  const doRevealTileAction = useCallback(() => {
+    dispatch(revealTileAction(tileId) as any);
+  }, [tileId]);
 
   return (
     <button onClick={doRevealTileAction}>

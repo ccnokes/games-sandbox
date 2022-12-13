@@ -1,3 +1,5 @@
+import ComputerPlayer from './ComputerPlayer';
+
 export type Player = {
   id: string,
   name: string,
@@ -21,12 +23,12 @@ export type State = {
   turn: {
     player?: string,
     revealedTileIds: string[],
-    prevRevealedTileId?: string,
   },
   players: Player[],
   scores: {[playerId: string]: number},
   tiles: {[tileId: string]: Tile},
   tileOrder: string[],
+  computerPlayer?: ComputerPlayer
 }
 
 export interface Action<Type extends string, Payload extends {} = {}> {
@@ -44,4 +46,5 @@ export type Actions = |
   Action<'REVEAL_TILE', {
     tileId: string,
   }> | 
-  Action<'TURN_OVER'>
+  Action<'TURN_OVER'> |
+  Action<'GAME_COMPLETE'>;

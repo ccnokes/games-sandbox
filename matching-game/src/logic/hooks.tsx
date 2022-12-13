@@ -1,9 +1,13 @@
 import { useCallback } from 'react';
-import {useSelector as reduxUseSelector, useDispatch as reduxUseDispatch} from 'react-redux';
-import {State, Actions} from './types';
+import {useSelector as reduxUseSelector, useDispatch as reduxUseDispatch, useStore as reduxUseStore} from 'react-redux';
+import {State, Actions, Action} from './types';
 
 export function useSelector<R>(fn: (state: State) => R) {
   return reduxUseSelector<State, ReturnType<typeof fn>>(fn);
+}
+
+export function useStore() {
+  return reduxUseStore<State, Actions>();
 }
 
 export function useDispatch(action: Actions, deps: any[] = []): () => void {
