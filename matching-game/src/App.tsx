@@ -8,6 +8,7 @@ import {
   useDispatch, 
   Tile,
   revealTileAction,
+  getCurrentPlayer,
   Player,
 } from './logic';
 
@@ -30,7 +31,7 @@ function App() {
 function SetupGame() {
   const players = useSelector<State['players']>(state => state.players);
   const startGame = useDispatch({ type: 'START', payload: {} });
-  // const addPlayer = useCallback((player: Player) => useDispatch({ type: 'ADD_PLAYER', payload: {player} }), []);
+  // const addPlayer = useDispatch({ type: 'ADD_PLAYER', payload: {player} }), []);
   
   return (
     <div>
@@ -50,7 +51,7 @@ function Game() {
 
   return (
     <div>
-      <h1>Game</h1>
+      <GameHeader />
       <div className="tile-grid">
         {tiles.map(tileId => <GameTile key={tileId} tileId={tileId} />)}
       </div>
@@ -58,16 +59,30 @@ function Game() {
   );
 }
 
+function GameHeader() {
+  const currentPlayer = useSelector<Player | undefined>(state => getCurrentPlayer(state));
+  return (
+    <header>
+      <h1>Game</h1>
+      {currentPlayer && 
+        <p>{currentPlayer.name}'s turn</p>
+      }
+    </header>
+  );
+}
+
 function GameTile({tileId}: {tileId: string}) {
   const tile = useSelector<Tile>(state => state.tiles[tileId]);
+  const currentPlayer = useSelector<Player | undefined>(state => getCurrentPlayer(state));
+
   const dispatch = reduxUseDispatch();
   
   const doRevealTileAction = useCallback(() => {
     dispatch(revealTileAction(tileId) as any);
-  }, [tileId]);
+  }, [tileId, dispatch]);
 
   return (
-    <button onClick={doRevealTileAction}>
+    <button data-tile-id={tile.id} onClick={doRevealTileAction} disabled={tile.state === 'matched' || currentPlayer?.type !== 'local'}>
       {tile.state === 'hidden' && <p>hidden</p>}
       {(tile.state === 'revealed' || tile.state === 'matched') && <p>{tile.match.text}</p>}
     </button>

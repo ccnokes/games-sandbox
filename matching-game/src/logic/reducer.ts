@@ -1,4 +1,5 @@
 import { ThunkAction } from 'redux-thunk';
+import ComputerPlayer from './ComputerPlayer';
 import id from './id';
 import {
   Tile,
@@ -16,20 +17,33 @@ function createDefaultPlayer(): Player {
   };
 }
 
+function createComputerPlayer(): Player {
+  return {
+    id: id(),
+    name: 'Computer',
+    type: 'computer'
+  };
+}
+
 export function createDefaultState(): State {
   const player = createDefaultPlayer();
+  const player2 = createComputerPlayer();
   return {
     gameState: 'setup',
     turn: {
       player: undefined,
       revealedTileIds: [],
     },
-    players: [player],
+    players: [player, player2],
     scores: {
       [player.id]: 0,
+      [player2.id]: 0,
     },
     tiles: {},
     tileOrder: [],
+    computerPlayers: {
+      [player2.id]: new ComputerPlayer(player2.id),
+    },
   };
 }
 
@@ -37,6 +51,13 @@ export default function gameReducer(state: State | undefined = createDefaultStat
   switch (action.type) {
     case 'ADD_PLAYER': {
       const {player} = action.payload;
+      
+      // handle computer players
+      let nextComputerPlayers = {...state.computerPlayers};
+      if (player.type === 'computer') {
+        nextComputerPlayers[player.id] = new ComputerPlayer(player.id);
+      }
+
       return {
         ...state,
         players: state.players.concat(player),
@@ -44,6 +65,7 @@ export default function gameReducer(state: State | undefined = createDefaultStat
           ...state.scores,
           [player.id]: 0,
         },
+        computerPlayers: nextComputerPlayers,
       };
     }
     case 'START': {
@@ -69,8 +91,9 @@ export default function gameReducer(state: State | undefined = createDefaultStat
       const {turn, tiles} = state;
       const tile = tiles[tileId];
       
-      if (turn.revealedTileIds.length >= 2) {
+      if (tile.state !== 'hidden' || turn.revealedTileIds.length >= 2) {
         // TODO - nope
+        console.log('nope, invalid REVEAL_TILE');
         return state;
       }
 
@@ -238,9 +261,30 @@ function shuffle(array: any[]) {
   return array;
 }
 
-export function getPlayer(state: State, playerId: string) {
+export function getPlayer(state: State, playerId: string | undefined) {
+  if (!playerId) return undefined;
+
   const {players} = state;
   return players.find(player => player.id === playerId);
+}
+
+export function getCurrentPlayer(state: State) {
+  const {turn} = state;
+  return getPlayer(state, turn.player);
+}
+
+export function getComputerPlayers(state: State) {
+  const {computerPlayers} = state;
+  return Object.values(computerPlayers);
+}
+
+export function getComputerPlayer(state: State, playerId: string) {
+  const {computerPlayers} = state;
+  return computerPlayers[playerId];
+}
+
+export function hasComputerPlayers(state: State) {
+  return getComputerPlayers(state).length > 0;
 }
 
 function isSecondReveal(state: State) {
@@ -258,7 +302,7 @@ function revealedTilesMatch(state: State) {
   return tilesMatch(tileA, tileB);
 }
 
-function canRevealTile(state: State) {
+export function canRevealTile(state: State) {
   const {turn} = state;
   return turn.revealedTileIds.length < 2;
 }

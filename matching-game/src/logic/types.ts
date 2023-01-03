@@ -28,7 +28,7 @@ export type State = {
   scores: {[playerId: string]: number},
   tiles: {[tileId: string]: Tile},
   tileOrder: string[],
-  computerPlayer?: ComputerPlayer
+  computerPlayers: {[playerId: string]: ComputerPlayer}
 }
 
 export interface Action<Type extends string, Payload extends {} = {}> {
