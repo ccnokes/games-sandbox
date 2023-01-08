@@ -30,7 +30,7 @@ export default class ComputerPlayer {
     const tilesArr = Object.values(tiles);
     const hiddenTiles = tilesArr.filter(tile => tile.state === 'hidden');
     const randomTileIndex = randomIntFromInterval(0, hiddenTiles.length - 1);
-    store.dispatch(revealTileAction(tilesArr[randomTileIndex].id) as any);
+    store.dispatch(revealTileAction(hiddenTiles[randomTileIndex].id) as any);
   }
 }
 

@@ -10,6 +10,7 @@ import {
   revealTileAction,
   getCurrentPlayer,
   Player,
+  getPlayer,
 } from './logic';
 
 // this is an app global
@@ -61,9 +62,22 @@ function Game() {
 
 function GameHeader() {
   const currentPlayer = useSelector<Player | undefined>(state => getCurrentPlayer(state));
+  
+  const playersAndScores = useSelector<({player: Player | undefined, score: number})[]>(state => {
+    return Object.keys(state.scores).map(playerId => ({
+      score: state.scores[playerId],
+      player: getPlayer(state, playerId),
+    }))
+  });
+
   return (
     <header>
       <h1>Game</h1>
+      <ul>
+        {playersAndScores.map(({player, score}) => (
+          <li key={player?.id}>{player?.name} - {score}</li>
+        ))}
+      </ul>
       {currentPlayer && 
         <p>{currentPlayer.name}'s turn</p>
       }

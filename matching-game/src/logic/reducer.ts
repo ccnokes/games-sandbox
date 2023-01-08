@@ -93,7 +93,7 @@ export default function gameReducer(state: State | undefined = createDefaultStat
       
       if (tile.state !== 'hidden' || turn.revealedTileIds.length >= 2) {
         // TODO - nope
-        console.log('nope, invalid REVEAL_TILE');
+        console.warn('nope, invalid REVEAL_TILE');
         return state;
       }
 
@@ -131,6 +131,10 @@ export default function gameReducer(state: State | undefined = createDefaultStat
         ...scores,
       };
       const [tileA, tileB] = getRevealedTiles(state);
+      if (!tileA || !tileB) {
+        console.warn('invalid TURN_OVER');
+        return state;
+      }
 
       if (revealedTilesMatch(state)) {
         // update tiles
